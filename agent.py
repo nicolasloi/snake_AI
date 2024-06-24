@@ -15,6 +15,7 @@ LR = 0.001  # learning rate
 class Agent:
     def __init__(self):
         self.n_games = 0
+        self.record = 0
         self.epsilon = 0  # randomness
         self.gamma = 0.9  # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)
@@ -117,7 +118,7 @@ def train():
     while True:
         state_old = agent.get_state(game)
         final_move = agent.get_action(state_old)
-        reward, done, score = game.play_step(final_move)
+        reward, done, score = game.play_step(final_move, agent)
         state_new = agent.get_state(game)
         agent.train_short_memory(state_old, final_move, reward, state_new, done)
         agent.remember(state_old, final_move, reward, state_new, done)
@@ -126,9 +127,9 @@ def train():
             game.reset()
             agent.n_games += 1
             agent.train_long_memory()
-            if score > record:
-                record = score
-                agent.model.save()
+        if score > agent.record:
+            agent.record = score
+            agent.model.save()
 
             print('Game', agent.n_games, 'Score', score, 'Record:', record)
 

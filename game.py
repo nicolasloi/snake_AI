@@ -24,7 +24,7 @@ BLUE2 = (0, 100, 255)
 BLACK = (0, 0, 0)
 
 BLOCK_SIZE = 20
-SPEED = 80  # ajust the speed of the snake to your liking
+SPEED = 60  # ajust the speed of the snake to your liking
 
 
 class SnakeGameAI:
@@ -54,7 +54,7 @@ class SnakeGameAI:
         if self.food in self.snake:
             self._place_food()
 
-    def play_step(self, action):
+    def play_step(self, action, agent):
         self.frame_iteration += 1
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -74,11 +74,11 @@ class SnakeGameAI:
             self._place_food()
         else:
             self.snake.pop()
-        self._update_ui()
+        self._update_ui(agent)
         self.clock.tick(SPEED)
         return reward, game_over, self.score
 
-    def _update_ui(self):
+    def _update_ui(self, agent):
         self.display.fill(BLACK)
         for pt in self.snake:
             pygame.draw.rect(self.display, BLUE1, pygame.Rect(pt.x, pt.y, BLOCK_SIZE, BLOCK_SIZE))
@@ -86,8 +86,15 @@ class SnakeGameAI:
 
         pygame.draw.rect(self.display, RED, pygame.Rect(self.food.x, self.food.y, BLOCK_SIZE, BLOCK_SIZE))
 
-        text = font.render("Score: " + str(self.score), True, WHITE)
-        self.display.blit(text, [0, 0])
+        score_text = font.render("Score: " + str(self.score), True, WHITE)
+        self.display.blit(score_text, [0, 0])
+
+        game_text = font.render("Game: " + str(agent.n_games), True, WHITE)
+        self.display.blit(game_text, [0, 30])
+
+        record_text = font.render("Record: " + str(agent.record), True, WHITE)
+        self.display.blit(record_text, [0, 60])
+
         pygame.display.flip()
 
     def is_collision(self, pt=None):
