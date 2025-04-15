@@ -14,7 +14,7 @@ LR = 0.001  # learning rate
 
 
 class Agent:
-    def __init__(self):
+    def __init__(self, use_existing_model=True):
         self.n_games = 0
         self.record = 0
         self.epsilon = 0  # randomness
@@ -27,7 +27,7 @@ class Agent:
         file_name = os.path.join(model_folder_path, 'model.pth')
         self.trained_model_loaded = False
         
-        if os.path.exists(file_name):
+        if os.path.exists(file_name) and use_existing_model:
             try:
                 self.model.load_state_dict(torch.load(file_name))
                 self.model.eval()  # Set the model to evaluation mode
@@ -41,7 +41,10 @@ class Agent:
             except Exception as e:
                 print(f"Error loading model: {e}. Starting with a new model.")
         else:
-            print("No saved model found. Starting with a new model.")
+            if not use_existing_model:
+                print("Starting with a new model as requested.")
+            else:
+                print("No saved model found. Starting with a new model.")
             
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
@@ -136,12 +139,12 @@ def plot(scores, mean_scores):
     plt.pause(.1)
 
 
-def train():
+def train(use_existing_model=True):
     plot_scores = []
     plot_mean_scores = []
     total_score = 0
     record = 0
-    agent = Agent()
+    agent = Agent(use_existing_model=use_existing_model)
     game = SnakeGameAI()
     while True:
         state_old = agent.get_state(game)

@@ -4,7 +4,10 @@ import numpy as np
 from enum import Enum
 from collections import namedtuple
 
-pygame.init()
+# Initialize pygame only if it's not already initialized
+if not pygame.get_init():
+    pygame.init()
+    
 font = pygame.font.SysFont('arial', 25)
 
 
