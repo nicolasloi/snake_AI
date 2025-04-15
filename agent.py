@@ -127,15 +127,16 @@ def train():
             game.reset()
             agent.n_games += 1
             agent.train_long_memory()
-        if score > agent.record:
-            agent.record = score
-            agent.model.save()
 
-            print('Game', agent.n_games, 'Score', score, 'Record:', record)
+            if score > agent.record: # Check for new record only when game is done
+                agent.record = score
+                agent.model.save()
+
+            print('Game', agent.n_games, 'Score', score, 'Record:', agent.record)
 
             plot_scores.append(score)
             total_score += score
-            mean_score = total_score / agent.n_games
+            mean_score = total_score / agent.n_games # n_games is now guaranteed to be >= 1
             plot_mean_scores.append(mean_score)
             plot(plot_scores, plot_mean_scores)
 
