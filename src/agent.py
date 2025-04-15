@@ -20,7 +20,7 @@ class Agent:
         self.epsilon = 0  # randomness
         self.gamma = 0.9  # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)
-        self.model = Linear_QNet(11, 256, 3)  # input size, hidden size, output size
+        self.model = Linear_QNet(17, 256, 3)  # Updated: 17 inputs (9 dangers + 4 directions + 4 food positions)
         
         # Check if a trained model exists and load it
         model_folder_path = './model'
@@ -50,37 +50,97 @@ class Agent:
 
     def get_state(self, game):
         head = game.snake[0]
-        point_l = Point(head.x - 20, head.y)
-        point_r = Point(head.x + 20, head.y)
-        point_u = Point(head.x, head.y - 20)
-        point_d = Point(head.x, head.y + 20)
+        
+        # Define points at 1, 2, and 3 blocks distance in each direction
+        # Left direction
+        point_l1 = Point(head.x - 20, head.y)
+        point_l2 = Point(head.x - 40, head.y)
+        point_l3 = Point(head.x - 60, head.y)
+        
+        # Right direction
+        point_r1 = Point(head.x + 20, head.y)
+        point_r2 = Point(head.x + 40, head.y)
+        point_r3 = Point(head.x + 60, head.y)
+        
+        # Up direction
+        point_u1 = Point(head.x, head.y - 20)
+        point_u2 = Point(head.x, head.y - 40)
+        point_u3 = Point(head.x, head.y - 60)
+        
+        # Down direction
+        point_d1 = Point(head.x, head.y + 20)
+        point_d2 = Point(head.x, head.y + 40)
+        point_d3 = Point(head.x, head.y + 60)
 
+        # Current direction
         dir_l = game.direction == Direction.LEFT
         dir_r = game.direction == Direction.RIGHT
         dir_u = game.direction == Direction.UP
         dir_d = game.direction == Direction.DOWN
 
+        # Extended state with perception at 3 blocks
         state = [
-            (dir_r and game.is_collision(point_r)) or  # Danger straight
-            (dir_l and game.is_collision(point_l)) or
-            (dir_u and game.is_collision(point_u)) or
-            (dir_d and game.is_collision(point_d)),
+            # Danger straight ahead - 1st block
+            (dir_r and game.is_collision(point_r1)) or 
+            (dir_l and game.is_collision(point_l1)) or
+            (dir_u and game.is_collision(point_u1)) or
+            (dir_d and game.is_collision(point_d1)),
+            
+            # Danger straight ahead - 2nd block
+            (dir_r and game.is_collision(point_r2)) or 
+            (dir_l and game.is_collision(point_l2)) or
+            (dir_u and game.is_collision(point_u2)) or
+            (dir_d and game.is_collision(point_d2)),
+            
+            # Danger straight ahead - 3rd block
+            (dir_r and game.is_collision(point_r3)) or 
+            (dir_l and game.is_collision(point_l3)) or
+            (dir_u and game.is_collision(point_u3)) or
+            (dir_d and game.is_collision(point_d3)),
 
-            (dir_u and game.is_collision(point_r)) or  # Danger right
-            (dir_d and game.is_collision(point_l)) or
-            (dir_l and game.is_collision(point_u)) or
-            (dir_r and game.is_collision(point_d)),
+            # Danger to the right - 1st block
+            (dir_u and game.is_collision(point_r1)) or 
+            (dir_d and game.is_collision(point_l1)) or
+            (dir_l and game.is_collision(point_u1)) or
+            (dir_r and game.is_collision(point_d1)),
+            
+            # Danger to the right - 2nd block
+            (dir_u and game.is_collision(point_r2)) or 
+            (dir_d and game.is_collision(point_l2)) or
+            (dir_l and game.is_collision(point_u2)) or
+            (dir_r and game.is_collision(point_d2)),
+            
+            # Danger to the right - 3rd block
+            (dir_u and game.is_collision(point_r3)) or 
+            (dir_d and game.is_collision(point_l3)) or
+            (dir_l and game.is_collision(point_u3)) or
+            (dir_r and game.is_collision(point_d3)),
 
-            (dir_d and game.is_collision(point_r)) or  # Danger left
-            (dir_u and game.is_collision(point_l)) or
-            (dir_r and game.is_collision(point_u)) or
-            (dir_l and game.is_collision(point_d)),
+            # Danger to the left - 1st block
+            (dir_d and game.is_collision(point_r1)) or 
+            (dir_u and game.is_collision(point_l1)) or
+            (dir_r and game.is_collision(point_u1)) or
+            (dir_l and game.is_collision(point_d1)),
+            
+            # Danger to the left - 2nd block
+            (dir_d and game.is_collision(point_r2)) or 
+            (dir_u and game.is_collision(point_l2)) or
+            (dir_r and game.is_collision(point_u2)) or
+            (dir_l and game.is_collision(point_d2)),
+            
+            # Danger to the left - 3rd block
+            (dir_d and game.is_collision(point_r3)) or 
+            (dir_u and game.is_collision(point_l3)) or
+            (dir_r and game.is_collision(point_u3)) or
+            (dir_l and game.is_collision(point_d3)),
 
-            dir_l,  # direction
+            # Current direction
+            dir_l,
             dir_r,
             dir_u,
             dir_d,
 
+            # Food position relative to the head
             game.food.x < game.head.x,  # food left
             game.food.x > game.head.x,  # food right
             game.food.y < game.head.y,  # food up
@@ -111,16 +171,26 @@ class Agent:
             self.epsilon = 80 - self.n_games  # Original exploration rate
             
         final_move = [0, 0, 0]
+        prediction_scores = None
+        
         if random.randint(0, 200) < self.epsilon:
+            # Random move (exploration)
             move = random.randint(0, 2)
             final_move[move] = 1
+            # Create fake prediction scores for visualization
+            prediction_scores = [0.0, 0.0, 0.0]
+            prediction_scores[move] = 1.0
         else:
+            # Predicted move based on model (exploitation)
             state0 = torch.tensor(state, dtype=torch.float)
             prediction = self.model(state0)
+            # Apply softmax to get probabilities
+            prediction_probs = torch.nn.functional.softmax(prediction, dim=0)
+            prediction_scores = prediction_probs.detach().numpy()
             move = torch.argmax(prediction).item()
             final_move[move] = 1
 
-        return final_move
+        return final_move, prediction_scores
 
 
 def plot(scores, mean_scores):
@@ -148,7 +218,11 @@ def train(use_existing_model=True):
     game = SnakeGameAI()
     while True:
         state_old = agent.get_state(game)
-        final_move = agent.get_action(state_old)
+        final_move, prediction_scores = agent.get_action(state_old)
+        
+        # Store the prediction scores for visualization
+        agent.last_prediction_scores = prediction_scores
+        
         reward, done, score = game.play_step(final_move, agent)
         state_new = agent.get_state(game)
         agent.train_short_memory(state_old, final_move, reward, state_new, done)

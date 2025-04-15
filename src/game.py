@@ -30,7 +30,7 @@ GRID_COLOR = (40, 40, 40) # Grid color
 
 # Game parameters
 BLOCK_SIZE = 20
-SPEED = 60
+SPEED = 40  # Reduced from 60 to 40 for slower movement
 GRID_SIZE = 20  # Grid size
 
 
@@ -56,6 +56,9 @@ class SnakeGameAI:
 
         for dir_img in self.head_img.values():
             dir_img.fill(GREEN1)
+            
+        # Add variable to store prediction scores
+        self.prediction_scores = None
 
         self.reset()
 
@@ -100,6 +103,10 @@ class SnakeGameAI:
             self._place_food()
         else:
             self.snake.pop()
+
+        # Store the prediction scores from agent if available
+        if hasattr(agent, 'last_prediction_scores'):
+            self.prediction_scores = agent.last_prediction_scores
 
         self._update_ui(agent)
         self.clock.tick(SPEED)
@@ -160,6 +167,67 @@ class SnakeGameAI:
 
         record_text = font.render(f"Record: {agent.record}", True, WHITE)
         self.display.blit(record_text, [20, 75])
+        
+        # Display AI's "thought process" - visualization of prediction scores
+        if hasattr(agent, 'last_prediction_scores') and agent.last_prediction_scores is not None:
+            # Create a panel for AI thinking visualization
+            panel_width = 200
+            panel_height = 150
+            # Position in the bottom left corner of the screen
+            panel_x = 10
+            panel_y = self.h - panel_height - 10
+            
+            # Create the panel box
+            ai_panel = pygame.Surface((panel_width, panel_height))
+            ai_panel.fill((30, 30, 30))
+            ai_panel.set_alpha(220)
+            self.display.blit(ai_panel, [panel_x, panel_y])
+            
+            # Panel title
+            title_text = font.render("AI Thinking", True, WHITE)
+            self.display.blit(title_text, [panel_x + 10, panel_y + 10])
+            
+            # Direction labels
+            clock_wise = ["Straight", "Right", "Left"]
+            
+            # Draw bars representing prediction scores
+            bar_height = 20
+            max_bar_width = panel_width - 80
+            
+            for i, (direction, score) in enumerate(zip(clock_wise, agent.last_prediction_scores)):
+                # Direction text
+                dir_text = font.render(f"{direction}:", True, WHITE)
+                self.display.blit(dir_text, [panel_x + 10, panel_y + 40 + i * 30])
+                
+                # Bar background
+                bar_bg_rect = pygame.Rect(panel_x + 80, panel_y + 45 + i * 30, max_bar_width, bar_height - 5)
+                pygame.draw.rect(self.display, (60, 60, 60), bar_bg_rect)
+                
+                # Bar representing probability
+                bar_width = int(max_bar_width * score)
+                
+                # Different colors for different actions
+                if i == 0:  # Straight - green
+                    bar_color = (50, 205, 50)
+                elif i == 1:  # Right - blue
+                    bar_color = (30, 144, 255)
+                else:  # Left - purple
+                    bar_color = (147, 112, 219)
+                
+                bar_rect = pygame.Rect(panel_x + 80, panel_y + 45 + i * 30, bar_width, bar_height - 5)
+                pygame.draw.rect(self.display, bar_color, bar_rect)
+                
+                # Percentage text
+                pct_text = font.render(f"{int(score * 100)}%", True, WHITE)
+                self.display.blit(pct_text, [panel_x + 85 + bar_width, panel_y + 40 + i * 30])
+            
+            # Display if the current move was random or predicted
+            if agent.epsilon > 0 and random.randint(0, 200) < agent.epsilon:
+                random_text = font.render("(Random Exploration)", True, (255, 165, 0))  # Orange
+                self.display.blit(random_text, [panel_x + 10, panel_y + 125])
+            else:
+                predict_text = font.render("(Model Prediction)", True, (135, 206, 250))  # Light blue
+                self.display.blit(predict_text, [panel_x + 10, panel_y + 125])
 
         pygame.display.flip()
 
