@@ -1,9 +1,10 @@
 import torch
 import random
 import numpy as np
+import os
 from collections import deque
-from game import SnakeGameAI, Direction, Point
-from model import Linear_QNet, QTrainer
+from src.game import SnakeGameAI, Direction, Point
+from src.model import Linear_QNet, QTrainer
 import matplotlib.pyplot as plt
 from IPython import display
 
@@ -20,6 +21,28 @@ class Agent:
         self.gamma = 0.9  # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)
         self.model = Linear_QNet(11, 256, 3)  # input size, hidden size, output size
+        
+        # Check if a trained model exists and load it
+        model_folder_path = './model'
+        file_name = os.path.join(model_folder_path, 'model.pth')
+        self.trained_model_loaded = False
+        
+        if os.path.exists(file_name):
+            try:
+                self.model.load_state_dict(torch.load(file_name))
+                self.model.eval()  # Set the model to evaluation mode
+                self.trained_model_loaded = True
+                print(f"Loaded trained model from {file_name}")
+                
+                # Start with more experience (less exploration) when a model is loaded
+                self.n_games = 60  # This reduces epsilon to a lower value
+                print(f"Starting with reduced exploration (equivalent to {self.n_games} games of experience)")
+                
+            except Exception as e:
+                print(f"Error loading model: {e}. Starting with a new model.")
+        else:
+            print("No saved model found. Starting with a new model.")
+            
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
     def get_state(self, game):
@@ -78,7 +101,12 @@ class Agent:
         self.trainer.train_step(state, action, reward, next_state, done)
 
     def get_action(self, state):
-        self.epsilon = 80 - self.n_games
+        # If trained model is loaded, we can use a lower epsilon for less exploration
+        if self.trained_model_loaded:
+            self.epsilon = max(20 - self.n_games, 0)  # Lower exploration rate, minimum 0
+        else:
+            self.epsilon = 80 - self.n_games  # Original exploration rate
+            
         final_move = [0, 0, 0]
         if random.randint(0, 200) < self.epsilon:
             move = random.randint(0, 2)

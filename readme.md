@@ -8,9 +8,12 @@ This project implements a Snake game with an AI agent that learns to play throug
 
 ## Project Structure
 
-- **game.py**: The Snake game environment built with Pygame
-- **agent.py**: The reinforcement learning agent that plays and learns the game
-- **model.py**: Neural network architecture and training logic
+- **src/game.py**: The Snake game environment built with Pygame
+- **src/agent.py**: The reinforcement learning agent that plays and learns the game
+- **src/model.py**: Neural network architecture and training logic
+- **tests/**: Contains test scripts to validate functionality
+- **main.py**: Main entry point to run the game
+- **model/**: Directory where trained models are saved
 
 ## Installation
 
@@ -67,7 +70,13 @@ The agent can choose to:
 To start training:
 
 ```bash
-python agent.py
+python main.py
+```
+
+To run the model loading test (verifies that a trained model loads correctly):
+
+```bash
+python tests/test_model_loading.py
 ```
 
 The game window displays:
@@ -87,7 +96,9 @@ The game window displays:
 
 ## Training Progress
 
-The neural network model is automatically saved to `model/model.pth` whenever the agent achieves a new high score, allowing training to be resumed later.
+The neural network model is automatically saved to `model/model.pth` whenever the agent achieves a new high score, allowing training to be resumed later. When you start the game, it automatically loads the previously trained model if one exists, so you don't need to start from scratch each time.
+
+The model loading test script (`tests/test_model_loading.py`) can be used to verify that the model loading functionality is working correctly.
 
 ## Credits
 
