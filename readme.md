@@ -17,18 +17,40 @@ This project implements a Snake game with an AI agent that learns to play throug
 ## Project Structure
 
 - **src/**
-  - **agent.py**: The reinforcement learning agent that plays and learns the game
-  - **game.py**: The Snake game environment built with Pygame
-  - **model.py**: Neural network architecture and training logic
-  - **menu/**: Modern menu system with animations
+  - **agent/**
+    - **__init__.py**: Package initialization
+    - **action.py**: Action space implementation for the agent
+    - **memory.py**: Experience replay buffer for training
+    - **state.py**: State representation and processing
+    - **trainer.py**: Training logic for the agent
+  - **game/**
+    - **__init__.py**: Package initialization
+    - **constants.py**: Game constants and configuration
+    - **entities.py**: Game entities like snake and food
+    - **environment.py**: Game environment implementation 
+    - **rendering.py**: Graphics and rendering utilities
+  - **menu/**
     - **__init__.py**: Package initialization
     - **colors.py**: Color definitions and theme
     - **button.py**: Interactive button components
     - **background.py**: Animated snake background
     - **main_menu.py**: Main menu implementation
-- **tests/**: Contains test scripts to validate functionality
+  - **model/**
+    - **__init__.py**: Package initialization
+    - **network.py**: Neural network architecture
+    - **trainer.py**: Model training and optimization
+  - **ui/**: User interface components
+  - **utils/**: Utility functions and helpers
+  - **__init__.py**: Package initialization
+  - **agent.py**: Main agent implementation
+  - **game.py**: Main game implementation
+  - **model.py**: Model interface and operations
+- **tests/**
+  - **test_model_loading.py**: Tests for model loading functionality
 - **model/**: Directory where trained models are saved
+  - **model.pth**: Trained neural network weights
 - **main.py**: Main entry point to run the game
+- **requirements.txt**: Project dependencies
 
 ## Installation
 
