@@ -7,6 +7,7 @@ from src.game import SnakeGameAI, Direction, Point
 from src.model import Linear_QNet, QTrainer
 import matplotlib.pyplot as plt
 from IPython import display
+import time
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
@@ -21,6 +22,10 @@ class Agent:
         self.gamma = 0.9  # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)
         self.model = Linear_QNet(17, 256, 3)  # Updated: 17 inputs (9 dangers + 4 directions + 4 food positions)
+        
+        # Track distances to food for better visualization
+        self.prev_food_distance = 0
+        self.approaching_food = False
         
         # Check if a trained model exists and load it
         model_folder_path = './model'
@@ -47,6 +52,76 @@ class Agent:
                 print("No saved model found. Starting with a new model.")
             
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
+        
+    def get_best_action(self, state, thinking_time):
+        """
+        Exécute plusieurs inférences pendant le temps imparti et 
+        retourne l'action qui a la meilleure probabilité moyenne.
+        
+        Args:
+            state: état actuel du jeu
+            thinking_time: temps maximum en secondes pour réfléchir
+            
+        Returns:
+            (final_move, prediction_scores, inference_count): 
+                - l'action choisie
+                - les scores de prédiction moyens
+                - le nombre d'inférences effectuées
+        """
+        # Si le temps de réflexion est très court, faire une seule inférence
+        if thinking_time <= 0.001:
+            return self.get_action(state)
+
+        # Si en phase d'exploration, faire une action aléatoire
+        # Utiliser la même logique que dans get_action
+        if self.trained_model_loaded:
+            epsilon = max(20 - self.n_games, 0)
+        else:
+            epsilon = 80 - self.n_games
+            
+        if random.randint(0, 200) < epsilon:
+            move_idx = random.randint(0, 2)
+            final_move = [0, 0, 0]
+            final_move[move_idx] = 1
+            fake_scores = [0.0, 0.0, 0.0]
+            fake_scores[move_idx] = 1.0
+            return final_move, fake_scores, 1
+        
+        # Convertir l'état en tensor pour le modèle
+        state_tensor = torch.tensor(state, dtype=torch.float)
+        
+        # Accumulateurs pour les prédictions
+        action_scores = [0, 0, 0]
+        inference_count = 0
+        
+        # Temps de début
+        start_time = time.time()
+        
+        # Continuer jusqu'à ce que le temps soit écoulé
+        while time.time() - start_time < thinking_time:
+            # Obtenir une prédiction du modèle
+            with torch.no_grad():  # Pas besoin de calculer des gradients
+                prediction = self.model(state_tensor)
+                
+            # Appliquer softmax pour obtenir des probabilités
+            probs = torch.nn.functional.softmax(prediction, dim=0).numpy()
+            
+            # Ajouter à nos accumulateurs
+            for i in range(3):
+                action_scores[i] += probs[i]
+                
+            inference_count += 1
+            
+        # Calculer les scores moyens
+        for i in range(3):
+            action_scores[i] /= inference_count
+            
+        # Trouver l'action avec le meilleur score moyen
+        move_idx = np.argmax(action_scores)
+        final_move = [0, 0, 0]
+        final_move[move_idx] = 1
+        
+        return final_move, action_scores, inference_count
 
     def get_state(self, game):
         head = game.snake[0]
@@ -216,11 +291,10 @@ def train(use_existing_model=True):
     record = 0
     agent = Agent(use_existing_model=use_existing_model)
     game = SnakeGameAI()
+    
     while True:
         state_old = agent.get_state(game)
         final_move, prediction_scores = agent.get_action(state_old)
-        
-        # Store the prediction scores for visualization
         agent.last_prediction_scores = prediction_scores
         
         reward, done, score = game.play_step(final_move, agent)

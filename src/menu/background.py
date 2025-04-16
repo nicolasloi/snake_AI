@@ -1,128 +1,145 @@
 """
-Background animations for Snake AI menu
+Background animation module for Snake AI menu
 """
 
 import pygame
 import random
 from src.menu.colors import *
 
-GRID_SIZE = 20
-SNAKE_SPEED = 5
-
 class Snake:
+    """
+    Animated snake for menu background
+    """
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        self.grid_size = GRID_SIZE
-        self.reset()
         
-    def reset(self):
-        # Start snake at the middle of the screen
-        self.direction = "RIGHT"
-        x = (self.width // self.grid_size) // 2 * self.grid_size
-        y = (self.height // self.grid_size) // 2 * self.grid_size
-        self.body = [(x, y), (x-self.grid_size, y), (x-2*self.grid_size, y)]
-        self.food = self._place_food()
-        self.grow = False
-        self.speed_counter = 0
+        # Snake parameters
+        self.block_size = 15
+        self.snake_length = 15
+        self.positions = []
         
+        # Initialize snake in a random position
+        self.head_x = random.randint(0, width - self.block_size)
+        self.head_y = random.randint(0, height - self.block_size)
+        self.direction = random.choice([(1, 0), (0, 1), (-1, 0), (0, -1)])
+        
+        # Initialize snake positions
+        for i in range(self.snake_length):
+            pos_x = self.head_x - self.direction[0] * i * self.block_size
+            pos_y = self.head_y - self.direction[1] * i * self.block_size
+            self.positions.append((pos_x, pos_y))
+        
+        # Initialize food position
+        self.food_pos = self._get_new_food_position()
+        
+        # Animation parameters
+        self.move_timer = 0
+        self.move_delay = 0.1  # seconds per movement
+
+    def _get_new_food_position(self):
+        """
+        Generates a new random position for food
+        """
+        x = random.randint(0, (self.width - self.block_size) // self.block_size) * self.block_size
+        y = random.randint(0, (self.height - self.block_size) // self.block_size) * self.block_size
+        
+        # Make sure food doesn't spawn on snake
+        while (x, y) in self.positions:
+            x = random.randint(0, (self.width - self.block_size) // self.block_size) * self.block_size
+            y = random.randint(0, (self.height - self.block_size) // self.block_size) * self.block_size
+            
+        return (x, y)
+
     def update(self):
-        self.speed_counter += 1
-        if self.speed_counter < SNAKE_SPEED:
-            return
-            
-        self.speed_counter = 0
+        """
+        Updates snake position and checks for food collection
+        """
+        # Update position
+        self.move_timer += 1
         
-        # Move head based on direction
-        x, y = self.body[0]
-        if self.direction == "RIGHT":
-            x += self.grid_size
-        elif self.direction == "LEFT":
-            x -= self.grid_size
-        elif self.direction == "UP":
-            y -= self.grid_size
-        elif self.direction == "DOWN":
-            y += self.grid_size
+        if self.move_timer >= 4:  # Slowed down movement for smoother animation
+            self.move_timer = 0
             
-        # Check if out of bounds, wrap around
-        if x >= self.width:
-            x = 0
-        if x < 0:
-            x = self.width - self.grid_size
-        if y >= self.height:
-            y = 0
-        if y < 0:
-            y = self.height - self.grid_size
+            # Change direction randomly sometimes
+            if random.random() < 0.1:
+                # Choose a direction that's not directly opposite to current
+                possible_dirs = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+                opposite = (-self.direction[0], -self.direction[1])
+                possible_dirs.remove(opposite)
+                self.direction = random.choice(possible_dirs)
             
-        # Insert new head
-        self.body.insert(0, (x, y))
-        
-        # Check if food eaten
-        if self.body[0] == self.food:
-            self.food = self._place_food()
-            self.grow = True
-        
-        # Remove tail if not growing
-        if not self.grow:
-            self.body.pop()
-        else:
-            self.grow = False
+            # Calculate new head position
+            head_x = self.positions[0][0] + self.direction[0] * self.block_size
+            head_y = self.positions[0][1] + self.direction[1] * self.block_size
             
-        # Randomly change direction occasionally to make animation more interesting
-        if random.random() < 0.03:
-            directions = ["RIGHT", "LEFT", "UP", "DOWN"]
-            self.direction = random.choice(directions)
-    
-    def _place_food(self):
-        max_x = self.width // self.grid_size - 1
-        max_y = self.height // self.grid_size - 1
-        
-        while True:
-            x = random.randint(0, max_x) * self.grid_size
-            y = random.randint(0, max_y) * self.grid_size
-            if (x, y) not in self.body:
-                return (x, y)
-    
-    def draw(self, surface):
-        # Draw food
-        food_rect = pygame.Rect(self.food[0], self.food[1], self.grid_size, self.grid_size)
-        pygame.draw.rect(surface, FOOD_COLOR, food_rect, border_radius=self.grid_size//2)
-        
-        # Draw snake
-        for i, (x, y) in enumerate(self.body):
-            snake_rect = pygame.Rect(x, y, self.grid_size, self.grid_size)
-            
-            if i == 0:  # Head
-                pygame.draw.rect(surface, SNAKE_COLOR, snake_rect, border_radius=self.grid_size//2)
+            # Wrap around edges
+            if head_x < 0:
+                head_x = self.width - self.block_size
+            elif head_x >= self.width:
+                head_x = 0
                 
-                # Eyes
-                eye_size = self.grid_size // 5
-                eye_offset = self.grid_size // 3
+            if head_y < 0:
+                head_y = self.height - self.block_size
+            elif head_y >= self.height:
+                head_y = 0
                 
-                if self.direction == "RIGHT":
-                    eye1_pos = (x + self.grid_size - eye_offset, y + eye_offset)
-                    eye2_pos = (x + self.grid_size - eye_offset, y + self.grid_size - eye_offset)
-                elif self.direction == "LEFT":
-                    eye1_pos = (x + eye_offset, y + eye_offset)
-                    eye2_pos = (x + eye_offset, y + self.grid_size - eye_offset)
-                elif self.direction == "UP":
-                    eye1_pos = (x + eye_offset, y + eye_offset)
-                    eye2_pos = (x + self.grid_size - eye_offset, y + eye_offset)
-                else:  # DOWN
-                    eye1_pos = (x + eye_offset, y + self.grid_size - eye_offset)
-                    eye2_pos = (x + self.grid_size - eye_offset, y + self.grid_size - eye_offset)
-                    
-                pygame.draw.circle(surface, BLACK, eye1_pos, eye_size)
-                pygame.draw.circle(surface, BLACK, eye2_pos, eye_size)
+            # Add new head position
+            self.positions.insert(0, (head_x, head_y))
+            
+            # Check if food eaten
+            if self.positions[0] == self.food_pos:
+                # Grow snake
+                self.snake_length += 1
+                # New food position
+                self.food_pos = self._get_new_food_position()
             else:
-                # Body segments get darker further from head
-                alpha = max(50, 255 - i * 10)
-                if alpha < 0:
-                    alpha = 50
-                    
-                segment_color = (SNAKE_COLOR[0], SNAKE_COLOR[1], SNAKE_COLOR[2], alpha)
-                
-                # Create a surface with per-pixel alpha
-                s = pygame.Surface((self.grid_size, self.grid_size), pygame.SRCALPHA)
-                pygame.draw.rect(s, segment_color, s.get_rect(), border_radius=self.grid_size//3)
-                surface.blit(s, (x, y))
+                # If no food eaten, remove tail
+                if len(self.positions) > self.snake_length:
+                    self.positions.pop()
+
+    def draw(self, surface):
+        """
+        Draws the snake and food on the given surface
+        
+        Args:
+            surface: pygame surface to draw on
+        """
+        # Draw food with glow
+        pygame.draw.rect(surface, FOOD_COLOR, (
+            self.food_pos[0], 
+            self.food_pos[1], 
+            self.block_size, 
+            self.block_size
+        ))
+        
+        # Add small reflection on food
+        pygame.draw.circle(
+            surface, 
+            WHITE, 
+            (self.food_pos[0] + 4, self.food_pos[1] + 4), 
+            2
+        )
+        
+        # Draw snake with gradient coloring
+        for i, pos in enumerate(self.positions):
+            # Calculate gradient color based on position in snake
+            progress = i / max(1, self.snake_length - 1)
+            alpha = 255 - int(200 * progress)
+            
+            pygame.draw.rect(surface, (*SNAKE_COLOR, alpha), (
+                pos[0], 
+                pos[1], 
+                self.block_size, 
+                self.block_size
+            ))
+            
+            # Draw smaller rectangle inside for texture
+            inner_offset = 2
+            inner_size = self.block_size - 2 * inner_offset
+            pygame.draw.rect(surface, (*SNAKE_COLOR, alpha - 40), (
+                pos[0] + inner_offset, 
+                pos[1] + inner_offset, 
+                inner_size, 
+                inner_size
+            ))

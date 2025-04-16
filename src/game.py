@@ -1,6 +1,8 @@
 import pygame
 import random
 import numpy as np
+import math
+import time
 from enum import Enum
 from collections import namedtuple
 
@@ -30,7 +32,7 @@ GRID_COLOR = (40, 40, 40) # Grid color
 
 # Game parameters
 BLOCK_SIZE = 20
-SPEED = 40  # Reduced from 60 to 40 for slower movement
+SPEED = 10  # Vitesse constante du jeu - valeur fixe
 GRID_SIZE = 20  # Grid size
 
 
@@ -59,6 +61,8 @@ class SnakeGameAI:
             
         # Add variable to store prediction scores
         self.prediction_scores = None
+        # Nombre d'inférences effectuées pour la décision actuelle
+        self.inference_count = 0
 
         self.reset()
 
@@ -87,21 +91,50 @@ class SnakeGameAI:
                 pygame.quit()
                 quit()
 
+        # Store previous head position to calculate distance change
+        prev_head = self.head
+        prev_distance = ((self.food.x - prev_head.x) ** 2 + (self.food.y - prev_head.y) ** 2) ** 0.5
+
+        # S'assurer que l'action est valide (continuer tout droit, tourner à gauche ou à droite)
+        valid_actions = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        action_is_valid = False
+        
+        for valid_action in valid_actions:
+            if np.array_equal(action, valid_action):
+                action_is_valid = True
+                break
+                
+        if not action_is_valid:
+            # Si l'action n'est pas valide, on continue tout droit par défaut
+            action = [1, 0, 0]
+
         self._move(action)
         self.snake.insert(0, self.head)
 
+        # Calculate new distance to food
+        new_distance = ((self.food.x - self.head.x) ** 2 + (self.food.y - self.head.y) ** 2) ** 0.5
+
         reward = 0
         game_over = False
+        
+        # Game over conditions
         if self.is_collision() or self.frame_iteration > 100 * len(self.snake):
             game_over = True
             reward = -10
             return reward, game_over, self.score
 
+        # Food reward
         if self.head == self.food:
             self.score += 1
             reward = 10
             self._place_food()
         else:
+            # Small reward or penalty based on if we're getting closer to food
+            if new_distance < prev_distance:
+                reward = 0.1  # Small reward for moving toward food
+            else:
+                reward = -0.1  # Small penalty for moving away from food
+                
             self.snake.pop()
 
         # Store the prediction scores from agent if available
@@ -144,6 +177,94 @@ class SnakeGameAI:
                 elif self.direction == Direction.DOWN:
                     pygame.draw.rect(self.display, BLACK, pygame.Rect(pt.x + eye_offset, pt.y + BLOCK_SIZE - eye_offset, eye_size, eye_size))
                     pygame.draw.rect(self.display, BLACK, pygame.Rect(pt.x + BLOCK_SIZE - eye_offset - eye_size, pt.y + BLOCK_SIZE - eye_offset, eye_size, eye_size))
+                    
+                # Draw obstacle detection arrows if we have access to the agent's state
+                if hasattr(agent, 'get_state'):
+                    # Get the current state which contains danger information
+                    state = agent.get_state(self)
+                    
+                    # Colors for the danger arrows
+                    ARROW_COLORS = [
+                        (255, 0, 0),      # Red for immediate danger (1st block)
+                        (255, 165, 0),     # Orange for medium danger (2nd block)
+                        (255, 255, 0)      # Yellow for distant danger (3rd block)
+                    ]
+                    
+                    # Arrow parameters
+                    arrow_length = [BLOCK_SIZE * 1.2, BLOCK_SIZE * 1.8, BLOCK_SIZE * 2.4]
+                    arrow_width = 3
+                    arrow_head_size = 7
+                    
+                    # Calculate center of the snake's head
+                    center_x = pt.x + BLOCK_SIZE // 2
+                    center_y = pt.y + BLOCK_SIZE // 2
+                    
+                    # Function to draw an arrow
+                    def draw_arrow(start_pos, end_pos, color, width):
+                        pygame.draw.line(self.display, color, start_pos, end_pos, width)
+                        # Draw arrowhead
+                        angle = math.atan2(end_pos[1] - start_pos[1], end_pos[0] - start_pos[0])
+                        end_x, end_y = end_pos
+                        pygame.draw.polygon(self.display, color, [
+                            (end_x, end_y),
+                            (end_x - arrow_head_size * math.cos(angle - math.pi/6), end_y - arrow_head_size * math.sin(angle - math.pi/6)),
+                            (end_x - arrow_head_size * math.cos(angle + math.pi/6), end_y - arrow_head_size * math.sin(angle + math.pi/6))
+                        ])
+                    
+                    # Extract danger states
+                    # State structure: state[0:3] = straight dangers, state[3:6] = right dangers, state[6:9] = left dangers
+                    
+                    # Define arrow directions based on current snake direction
+                    if self.direction == Direction.RIGHT:
+                        directions = [
+                            # Straight (right)
+                            [(center_x + arrow_length[i], center_y) for i in range(3)],
+                            # Right turn (down)
+                            [(center_x, center_y + arrow_length[i]) for i in range(3)],
+                            # Left turn (up)
+                            [(center_x, center_y - arrow_length[i]) for i in range(3)]
+                        ]
+                    elif self.direction == Direction.LEFT:
+                        directions = [
+                            # Straight (left)
+                            [(center_x - arrow_length[i], center_y) for i in range(3)],
+                            # Right turn (up)
+                            [(center_x, center_y - arrow_length[i]) for i in range(3)],
+                            # Left turn (down)
+                            [(center_x, center_y + arrow_length[i]) for i in range(3)]
+                        ]
+                    elif self.direction == Direction.UP:
+                        directions = [
+                            # Straight (up)
+                            [(center_x, center_y - arrow_length[i]) for i in range(3)],
+                            # Right turn (right)
+                            [(center_x + arrow_length[i], center_y) for i in range(3)],
+                            # Left turn (left)
+                            [(center_x - arrow_length[i], center_y) for i in range(3)]
+                        ]
+                    elif self.direction == Direction.DOWN:
+                        directions = [
+                            # Straight (down)
+                            [(center_x, center_y + arrow_length[i]) for i in range(3)],
+                            # Right turn (left)
+                            [(center_x - arrow_length[i], center_y) for i in range(3)],
+                            # Left turn (right)
+                            [(center_x + arrow_length[i], center_y) for i in range(3)]
+                        ]
+                    
+                    # Draw danger arrows for straight, right, left
+                    for dir_idx in range(3):  # 0=straight, 1=right, 2=left
+                        for dist_idx in range(3):  # 0=close, 1=medium, 2=far
+                            # Calculate the index in the state array
+                            state_idx = dir_idx * 3 + dist_idx
+                            
+                            # If there's danger at this position
+                            if state[state_idx]:
+                                # Draw arrow for this danger
+                                start_pos = (center_x, center_y)
+                                end_pos = directions[dir_idx][dist_idx]
+                                draw_arrow(start_pos, end_pos, ARROW_COLORS[dist_idx], arrow_width)
+                    
             else:  # Body
                 pygame.draw.rect(self.display, GREEN2, pygame.Rect(pt.x, pt.y, BLOCK_SIZE, BLOCK_SIZE))
                 # Snake body pattern drawing
@@ -153,8 +274,8 @@ class SnakeGameAI:
         pygame.draw.rect(self.display, RED, pygame.Rect(self.food.x, self.food.y, BLOCK_SIZE, BLOCK_SIZE))
         pygame.draw.circle(self.display, WHITE, (self.food.x + 5, self.food.y + 5), 2)  # Reflection on the apple
 
-        # Display game information in a box
-        info_box = pygame.Surface((200, 90))
+        # Display game information in a box - Interface simplifiée
+        info_box = pygame.Surface((200, 100))
         info_box.fill((30, 30, 30))
         info_box.set_alpha(200)  # Semi-transparent
         self.display.blit(info_box, [10, 10])
@@ -167,67 +288,6 @@ class SnakeGameAI:
 
         record_text = font.render(f"Record: {agent.record}", True, WHITE)
         self.display.blit(record_text, [20, 75])
-        
-        # Display AI's "thought process" - visualization of prediction scores
-        if hasattr(agent, 'last_prediction_scores') and agent.last_prediction_scores is not None:
-            # Create a panel for AI thinking visualization
-            panel_width = 200
-            panel_height = 150
-            # Position in the bottom left corner of the screen
-            panel_x = 10
-            panel_y = self.h - panel_height - 10
-            
-            # Create the panel box
-            ai_panel = pygame.Surface((panel_width, panel_height))
-            ai_panel.fill((30, 30, 30))
-            ai_panel.set_alpha(220)
-            self.display.blit(ai_panel, [panel_x, panel_y])
-            
-            # Panel title
-            title_text = font.render("AI Thinking", True, WHITE)
-            self.display.blit(title_text, [panel_x + 10, panel_y + 10])
-            
-            # Direction labels
-            clock_wise = ["Straight", "Right", "Left"]
-            
-            # Draw bars representing prediction scores
-            bar_height = 20
-            max_bar_width = panel_width - 80
-            
-            for i, (direction, score) in enumerate(zip(clock_wise, agent.last_prediction_scores)):
-                # Direction text
-                dir_text = font.render(f"{direction}:", True, WHITE)
-                self.display.blit(dir_text, [panel_x + 10, panel_y + 40 + i * 30])
-                
-                # Bar background
-                bar_bg_rect = pygame.Rect(panel_x + 80, panel_y + 45 + i * 30, max_bar_width, bar_height - 5)
-                pygame.draw.rect(self.display, (60, 60, 60), bar_bg_rect)
-                
-                # Bar representing probability
-                bar_width = int(max_bar_width * score)
-                
-                # Different colors for different actions
-                if i == 0:  # Straight - green
-                    bar_color = (50, 205, 50)
-                elif i == 1:  # Right - blue
-                    bar_color = (30, 144, 255)
-                else:  # Left - purple
-                    bar_color = (147, 112, 219)
-                
-                bar_rect = pygame.Rect(panel_x + 80, panel_y + 45 + i * 30, bar_width, bar_height - 5)
-                pygame.draw.rect(self.display, bar_color, bar_rect)
-                
-                # Percentage text
-                pct_text = font.render(f"{int(score * 100)}%", True, WHITE)
-                self.display.blit(pct_text, [panel_x + 85 + bar_width, panel_y + 40 + i * 30])
-            
-            # Display if the current move was random or predicted
-            if agent.epsilon > 0 and random.randint(0, 200) < agent.epsilon:
-                random_text = font.render("(Random Exploration)", True, (255, 165, 0))  # Orange
-                self.display.blit(random_text, [panel_x + 10, panel_y + 125])
-            else:
-                predict_text = font.render("(Model Prediction)", True, (135, 206, 250))  # Light blue
-                self.display.blit(predict_text, [panel_x + 10, panel_y + 125])
 
         pygame.display.flip()
 
