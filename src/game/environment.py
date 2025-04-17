@@ -26,7 +26,7 @@ class SnakeGameAI:
         self.w = GRID_SIZE * (w // GRID_SIZE)
         self.h = GRID_SIZE * (h // GRID_SIZE)
         self.display = pygame.display.set_mode((self.w, self.h))
-        pygame.display.set_caption('Snake Classic')
+        pygame.display.set_caption('Snake AI')
         self.clock = pygame.time.Clock()
         
         # Variables to store prediction scores
@@ -40,7 +40,7 @@ class SnakeGameAI:
         Resets the game to its initial state
         """
         self.direction = Direction.RIGHT
-        self.head = Point(self.w / 2, self.h / 2)
+        self.head = Point(self.w // 2, self.h // 2)
         self.snake = [self.head,
                       Point(self.head.x - BLOCK_SIZE, self.head.y),
                       Point(self.head.x - (2 * BLOCK_SIZE), self.head.y)]
@@ -208,7 +208,7 @@ class SnakeGameAI:
         """
         Updates the user interface
         """
-        # Fill background
+        # Fill background with black
         self.display.fill(BLACK)
 
         # Draw the grid

@@ -36,32 +36,32 @@ def draw_snake_head(display, position, direction):
     """
     Draws the snake's head
     """
-    pygame.draw.rect(display, GREEN1, pygame.Rect(position.x, position.y, BLOCK_SIZE, BLOCK_SIZE))
+    pygame.draw.rect(display, BLUE1, pygame.Rect(position.x, position.y, BLOCK_SIZE, BLOCK_SIZE))
     
     # Add eyes based on direction
     eye_size = 4
     eye_offset = 4
 
     if direction == Direction.RIGHT:
-        pygame.draw.rect(display, BLACK, pygame.Rect(position.x + BLOCK_SIZE - eye_offset, position.y + eye_offset, eye_size, eye_size))
-        pygame.draw.rect(display, BLACK, pygame.Rect(position.x + BLOCK_SIZE - eye_offset, position.y + BLOCK_SIZE - eye_offset - eye_size, eye_size, eye_size))
+        pygame.draw.rect(display, WHITE, pygame.Rect(position.x + BLOCK_SIZE - eye_offset, position.y + eye_offset, eye_size, eye_size))
+        pygame.draw.rect(display, WHITE, pygame.Rect(position.x + BLOCK_SIZE - eye_offset, position.y + BLOCK_SIZE - eye_offset - eye_size, eye_size, eye_size))
     elif direction == Direction.LEFT:
-        pygame.draw.rect(display, BLACK, pygame.Rect(position.x + eye_offset - eye_size, position.y + eye_offset, eye_size, eye_size))
-        pygame.draw.rect(display, BLACK, pygame.Rect(position.x + eye_offset - eye_size, position.y + BLOCK_SIZE - eye_offset - eye_size, eye_size, eye_size))
+        pygame.draw.rect(display, WHITE, pygame.Rect(position.x + eye_offset - eye_size, position.y + eye_offset, eye_size, eye_size))
+        pygame.draw.rect(display, WHITE, pygame.Rect(position.x + eye_offset - eye_size, position.y + BLOCK_SIZE - eye_offset - eye_size, eye_size, eye_size))
     elif direction == Direction.UP:
-        pygame.draw.rect(display, BLACK, pygame.Rect(position.x + eye_offset, position.y + eye_offset - eye_size, eye_size, eye_size))
-        pygame.draw.rect(display, BLACK, pygame.Rect(position.x + BLOCK_SIZE - eye_offset - eye_size, position.y + eye_offset - eye_size, eye_size, eye_size))
+        pygame.draw.rect(display, WHITE, pygame.Rect(position.x + eye_offset, position.y + eye_offset - eye_size, eye_size, eye_size))
+        pygame.draw.rect(display, WHITE, pygame.Rect(position.x + BLOCK_SIZE - eye_offset - eye_size, position.y + eye_offset - eye_size, eye_size, eye_size))
     elif direction == Direction.DOWN:
-        pygame.draw.rect(display, BLACK, pygame.Rect(position.x + eye_offset, position.y + BLOCK_SIZE - eye_offset, eye_size, eye_size))
-        pygame.draw.rect(display, BLACK, pygame.Rect(position.x + BLOCK_SIZE - eye_offset - eye_size, position.y + BLOCK_SIZE - eye_offset, eye_size, eye_size))
+        pygame.draw.rect(display, WHITE, pygame.Rect(position.x + eye_offset, position.y + BLOCK_SIZE - eye_offset, eye_size, eye_size))
+        pygame.draw.rect(display, WHITE, pygame.Rect(position.x + BLOCK_SIZE - eye_offset - eye_size, position.y + BLOCK_SIZE - eye_offset, eye_size, eye_size))
 
 def draw_snake_body(display, position):
     """
     Draws a segment of the snake's body
     """
-    pygame.draw.rect(display, GREEN2, pygame.Rect(position.x, position.y, BLOCK_SIZE, BLOCK_SIZE))
+    pygame.draw.rect(display, BLUE2, pygame.Rect(position.x, position.y, BLOCK_SIZE, BLOCK_SIZE))
     # Snake body pattern
-    pygame.draw.rect(display, GREEN1, pygame.Rect(position.x + 4, position.y + 4, BLOCK_SIZE - 8, BLOCK_SIZE - 8))
+    pygame.draw.rect(display, BLUE1, pygame.Rect(position.x + 4, position.y + 4, BLOCK_SIZE - 8, BLOCK_SIZE - 8))
 
 def draw_food(display, food):
     """
@@ -106,11 +106,13 @@ def draw_danger_arrows(display, state, direction, head_position):
     ARROW_COLORS = [
         (255, 0, 0),      # Red for immediate danger (1st block)
         (255, 165, 0),    # Orange for medium danger (2nd block)
-        (255, 255, 0)     # Yellow for distant danger (3rd block)
+        (255, 255, 0),    # Yellow for distant danger (3rd block)
+        (200, 200, 0),    # Light yellow for 4th block
+        (150, 150, 0)     # Very light yellow for 5th block
     ]
     
     # Arrow parameters
-    arrow_length = [BLOCK_SIZE * 1.2, BLOCK_SIZE * 1.8, BLOCK_SIZE * 2.4]
+    arrow_length = [BLOCK_SIZE * 1.2, BLOCK_SIZE * 1.8, BLOCK_SIZE * 2.4, BLOCK_SIZE * 3.0, BLOCK_SIZE * 3.6]
     arrow_width = 3
     arrow_head_size = 7
     
@@ -122,48 +124,48 @@ def draw_danger_arrows(display, state, direction, head_position):
     if direction == Direction.RIGHT:
         directions = [
             # Straight (right)
-            [(center_x + arrow_length[i], center_y) for i in range(3)],
+            [(center_x + arrow_length[i], center_y) for i in range(5)],
             # Right turn (down)
-            [(center_x, center_y + arrow_length[i]) for i in range(3)],
+            [(center_x, center_y + arrow_length[i]) for i in range(5)],
             # Left turn (up)
-            [(center_x, center_y - arrow_length[i]) for i in range(3)]
+            [(center_x, center_y - arrow_length[i]) for i in range(5)]
         ]
     elif direction == Direction.LEFT:
         directions = [
             # Straight (left)
-            [(center_x - arrow_length[i], center_y) for i in range(3)],
+            [(center_x - arrow_length[i], center_y) for i in range(5)],
             # Right turn (up)
-            [(center_x, center_y - arrow_length[i]) for i in range(3)],
+            [(center_x, center_y - arrow_length[i]) for i in range(5)],
             # Left turn (down)
-            [(center_x, center_y + arrow_length[i]) for i in range(3)]
+            [(center_x, center_y + arrow_length[i]) for i in range(5)]
         ]
     elif direction == Direction.UP:
         directions = [
             # Straight (up)
-            [(center_x, center_y - arrow_length[i]) for i in range(3)],
+            [(center_x, center_y - arrow_length[i]) for i in range(5)],
             # Right turn (right)
-            [(center_x + arrow_length[i], center_y) for i in range(3)],
+            [(center_x + arrow_length[i], center_y) for i in range(5)],
             # Left turn (left)
-            [(center_x - arrow_length[i], center_y) for i in range(3)]
+            [(center_x - arrow_length[i], center_y) for i in range(5)]
         ]
     elif direction == Direction.DOWN:
         directions = [
             # Straight (down)
-            [(center_x, center_y + arrow_length[i]) for i in range(3)],
+            [(center_x, center_y + arrow_length[i]) for i in range(5)],
             # Right turn (left)
-            [(center_x - arrow_length[i], center_y) for i in range(3)],
+            [(center_x - arrow_length[i], center_y) for i in range(5)],
             # Left turn (right)
-            [(center_x + arrow_length[i], center_y) for i in range(3)]
+            [(center_x + arrow_length[i], center_y) for i in range(5)]
         ]
     
     # Draw danger arrows for straight, right, left
     for dir_idx in range(3):  # 0=straight, 1=right, 2=left
-        for dist_idx in range(3):  # 0=close, 1=medium, 2=far
+        for dist_idx in range(5):  # 0=close, 1=medium, 2=far, 3=very far, 4=extremely far
             # Calculate index in state array
-            state_idx = dir_idx * 3 + dist_idx
+            state_idx = dir_idx * 5 + dist_idx
             
-            # If there's danger at this position
-            if state[state_idx]:
+            # Check if the index exists in state before using it
+            if state_idx < len(state) and state[state_idx]:
                 # Draw arrow for this danger
                 start_pos = (center_x, center_y)
                 end_pos = directions[dir_idx][dist_idx]

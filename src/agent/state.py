@@ -18,26 +18,34 @@ def get_state(game):
     head = game.snake[0]
     block_size = game.w // 32  # Assumed value of BLOCK_SIZE
     
-    # Define points at 1, 2, and 3 blocks distance in each direction
+    # Define points at 1, 2, 3, 4, and 5 blocks distance in each direction
     # Left direction
     point_l1 = Point(head.x - block_size, head.y)
     point_l2 = Point(head.x - (2 * block_size), head.y)
     point_l3 = Point(head.x - (3 * block_size), head.y)
+    point_l4 = Point(head.x - (4 * block_size), head.y)
+    point_l5 = Point(head.x - (5 * block_size), head.y)
     
     # Right direction
     point_r1 = Point(head.x + block_size, head.y)
     point_r2 = Point(head.x + (2 * block_size), head.y)
     point_r3 = Point(head.x + (3 * block_size), head.y)
+    point_r4 = Point(head.x + (4 * block_size), head.y)
+    point_r5 = Point(head.x + (5 * block_size), head.y)
     
     # Up direction
     point_u1 = Point(head.x, head.y - block_size)
     point_u2 = Point(head.x, head.y - (2 * block_size))
     point_u3 = Point(head.x, head.y - (3 * block_size))
+    point_u4 = Point(head.x, head.y - (4 * block_size))
+    point_u5 = Point(head.x, head.y - (5 * block_size))
     
     # Down direction
     point_d1 = Point(head.x, head.y + block_size)
     point_d2 = Point(head.x, head.y + (2 * block_size))
     point_d3 = Point(head.x, head.y + (3 * block_size))
+    point_d4 = Point(head.x, head.y + (4 * block_size))
+    point_d5 = Point(head.x, head.y + (5 * block_size))
 
     # Current direction
     dir_l = game.direction == Direction.LEFT
@@ -45,7 +53,7 @@ def get_state(game):
     dir_u = game.direction == Direction.UP
     dir_d = game.direction == Direction.DOWN
 
-    # Extended state with perception at 3 blocks
+    # Extended state with perception at 5 blocks
     state = [
         # Danger straight ahead - 1st block
         (dir_r and game.is_collision(point_r1)) or 
@@ -65,6 +73,18 @@ def get_state(game):
         (dir_u and game.is_collision(point_u3)) or
         (dir_d and game.is_collision(point_d3)),
 
+        # Danger straight ahead - 4th block
+        (dir_r and game.is_collision(point_r4)) or 
+        (dir_l and game.is_collision(point_l4)) or
+        (dir_u and game.is_collision(point_u4)) or
+        (dir_d and game.is_collision(point_d4)),
+        
+        # Danger straight ahead - 5th block
+        (dir_r and game.is_collision(point_r5)) or 
+        (dir_l and game.is_collision(point_l5)) or
+        (dir_u and game.is_collision(point_u5)) or
+        (dir_d and game.is_collision(point_d5)),
+
         # Danger to the right - 1st block
         (dir_u and game.is_collision(point_r1)) or 
         (dir_d and game.is_collision(point_l1)) or
@@ -83,6 +103,18 @@ def get_state(game):
         (dir_l and game.is_collision(point_u3)) or
         (dir_r and game.is_collision(point_d3)),
 
+        # Danger to the right - 4th block
+        (dir_u and game.is_collision(point_r4)) or 
+        (dir_d and game.is_collision(point_l4)) or
+        (dir_l and game.is_collision(point_u4)) or
+        (dir_r and game.is_collision(point_d4)),
+        
+        # Danger to the right - 5th block
+        (dir_u and game.is_collision(point_r5)) or 
+        (dir_d and game.is_collision(point_l5)) or
+        (dir_l and game.is_collision(point_u5)) or
+        (dir_r and game.is_collision(point_d5)),
+
         # Danger to the left - 1st block
         (dir_d and game.is_collision(point_r1)) or 
         (dir_u and game.is_collision(point_l1)) or
@@ -100,6 +132,18 @@ def get_state(game):
         (dir_u and game.is_collision(point_l3)) or
         (dir_r and game.is_collision(point_u3)) or
         (dir_l and game.is_collision(point_d3)),
+
+        # Danger to the left - 4th block
+        (dir_d and game.is_collision(point_r4)) or 
+        (dir_u and game.is_collision(point_l4)) or
+        (dir_r and game.is_collision(point_u4)) or
+        (dir_l and game.is_collision(point_d4)),
+        
+        # Danger to the left - 5th block
+        (dir_d and game.is_collision(point_r5)) or 
+        (dir_u and game.is_collision(point_l5)) or
+        (dir_r and game.is_collision(point_u5)) or
+        (dir_l and game.is_collision(point_d5)),
 
         # Current direction
         dir_l,

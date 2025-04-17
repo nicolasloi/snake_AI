@@ -20,7 +20,10 @@ class Agent:
         self.epsilon = 0  # randomness
         self.gamma = 0.9  # discount rate
         self.memory = ReplayMemory()
-        self.model = Linear_QNet(17, 256, 3)  # 17 inputs (9 dangers + 4 directions + 4 food positions)
+        
+        # Enhanced state with 5-block vision instead of 3:
+        # 15 dangers (3 directions x 5 blocks), 4 current directions, 4 relative food positions
+        self.model = Linear_QNet(23, 256, 3)
         
         # For visualization
         self.prev_food_distance = 0
@@ -34,14 +37,21 @@ class Agent:
         
         if os.path.exists(file_name) and use_existing_model:
             try:
-                self.model.load_state_dict(torch.load(file_name))
-                self.model.eval()  # Set model to evaluation mode
-                self.trained_model_loaded = True
-                print(f"Model loaded from {file_name}")
+                # Load model with size difference handling
+                saved_state = torch.load(file_name)
                 
-                # Reduce exploration with a trained model
-                self.n_games = 60
-                print(f"Starting with reduced exploration (equivalent to {self.n_games} games experience)")
+                # Check if the old model had a different size
+                if 'linear1.weight' in saved_state and saved_state['linear1.weight'].size(1) != 23:
+                    print(f"The existing model is not compatible with the new 5-block vision. Creating a new model.")
+                else:
+                    self.model.load_state_dict(saved_state)
+                    self.model.eval()  # Set model to evaluation mode
+                    self.trained_model_loaded = True
+                    print(f"Model loaded from {file_name}")
+                    
+                    # Reduce exploration with a trained model
+                    self.n_games = 60
+                    print(f"Starting with reduced exploration (equivalent to {self.n_games} games experience)")
                 
             except Exception as e:
                 print(f"Error loading model: {e}. Starting with a new model.")
